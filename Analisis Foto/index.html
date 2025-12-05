@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detektor Detail Foto Lanjutan (Gemini)</title>
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+        .container-card {
+            max-width: 90%;
+            margin: 2rem auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #3b82f6;
+        }
+        #result-box {
+            white-space: pre-wrap;
+            min-height: 100px;
+            background-color: #f1f5f9;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+        #loading-indicator {
+            display: none;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        /* Responsif untuk tampilan mobile */
+        @media (min-width: 640px) {
+            .container-card {
+                max-width: 768px;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <div class="container-card">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Detektor Detail Foto Lanjutan Gemini</h1>
+        <p class="text-gray-600 mb-6">Unggah gambar untuk mendapatkan analisis visual yang sangat detail (warna, pencahayaan, objek, gaya, perkiraan perangkat, dan lokasi).</p>
+        
+        <div id="api-alert" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded-lg" role="alert">
+            <p class="font-bold">Perhatian Penting:</p>
+            <p class="text-sm">Anda harus memasukkan Kunci API Gemini Anda sendiri di dalam kode JavaScript agar aplikasi ini berfungsi. (Lihat baris 108).</p>
+        </div>
+
+        <!-- Area Unggah Gambar -->
+        <div class="mb-6">
+            <div id="upload-box" class="upload-area" onclick="document.getElementById('file-input').click()">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <p class="mt-2 text-sm text-gray-600">Seret & lepas atau Klik untuk memilih file (JPG, PNG)</p>
+            </div>
+            <input type="file" id="file-input" class="hidden" accept="image/jpeg, image/png">
+        </div>
+
+        <!-- Pratinjau Gambar & Hasil -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Pratinjau Gambar -->
+            <div>
+                <h2 class="text-xl font-semibold text-gray-800 mb-3">Pratinjau Gambar</h2>
+                <div class="p-3 border rounded-lg bg-gray-50 h-64 flex items-center justify-center overflow-hidden">
+                    <img id="image-preview" src="" alt="Pratinjau Foto" class="max-h-full max-w-full object-contain rounded-md" style="display: none;">
+                    <p id="placeholder-text" class="text-gray-500">Gambar yang diunggah akan muncul di sini.</p>
+                </div>
+            </div>
+
+            <!-- Area Hasil -->
+            <div>
+                <h2 class="text-xl font-semibold text-gray-800 mb-3">Hasil Analisis Detail</h2>
+                <button id="analyze-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150 ease-in-out disabled:opacity-50" disabled>
+                    Mulai Analisis
+                </button>
+                
+                <p id="loading-indicator" class="mt-4 text-center">Sedang menganalisis...</p>
+                
+                <div id="result-box" class="mt-4 text-gray-700 h-64 overflow-y-auto">
+                    Hasil analisis akan muncul di sini.
+                </div>
+                
+                <p id="error-message" class="mt-4 text-sm text-red-600 hidden"></p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        
+        // =======================================================
+        // LANGKAH PENTING: MASUKKAN KUNCI API GEMINI ANDA DI SINI
+        // Ganti string kosong "" dengan Kunci API Gemini yang telah Anda dapatkan
+        // =======================================================
+        const apiKey = "AIzaSyDw2oKa2pFZMvv4XkFTKhUfuTIUiRQ1Y68"; // <--- GANTI INI! 
+        // =======================================================
+
+        let fileData = null; // Menyimpan data base64 gambar yang diunggah
+        let fileMimeType = 'image/jpeg'; // Default, akan diupdate saat unggah
+
+        // --- Fungsi Helper untuk Konversi Gambar ---
+
+        /**
+         * Mengkonversi objek File menjadi string Base64.
+         * @param {File} file Objek file gambar.
+         * @returns {Promise<string>} String Base64 dari data gambar.
+         */
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]); // Ambil hanya bagian data Base64
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // --- Fungsi Panggilan Gemini API ---
+
+        /**
+         * Memanggil Gemini API untuk menganalisis gambar.
+         * @param {string} base64Image Data gambar dalam format base64.
+         * @param {string} mimeType Tipe MIME gambar.
+         * @returns {Promise<string>} Teks hasil analisis.
+         */
+        async function analyzeImage(base64Image, mimeType) {
+            if (!apiKey || apiKey === "") {
+                throw new Error("Kunci API Gemini tidak ditemukan. Silakan masukkan kunci API Anda.");
+            }
+            
+            const modelName = 'gemini-2.5-flash-preview-09-2025';
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+            // Perintah yang SANGAT SPESIFIK untuk mendapatkan semua detail yang diminta pengguna:
+            const systemPrompt = `Anda adalah seorang ahli analisis visual dan forensik digital. Tugas Anda adalah memberikan analisis yang sangat detail, komprehensif, dan terstruktur dari gambar yang diberikan. Analisis harus mencakup data teknis dan kontekstual. Struktur hasilnya harus sebagai berikut:
+            
+            **1. Analisis Teknis dan Perangkat (Jika Dapat Disimpulkan):**
+            * Perkiraan Perangkat/Kamera: Tentukan merek atau jenis kamera (misalnya, kamera ponsel kelas atas, DSLR, kamera saku) berdasarkan kualitas gambar, resolusi, noise, dan ciri khas optik. Jika tidak dapat ditentukan, nyatakan "Tidak dapat ditentukan."
+            * Kualitas dan Aspek Rasio: Kualitas piksel, potensi kompresi, dan aspek rasio (misalnya 16:9, 4:3).
+            * Kondisi Foto: Tingkat ketajaman, adanya noise, atau potensi artefak pasca-pemrosesan.
+
+            **2. Analisis Visual Mendalam:**
+            * Objek Utama dan Tindakan: Daftar semua objek, orang, atau kegiatan yang jelas.
+            * Komposisi dan Gaya: Gaya fotografi (misalnya, rule of thirds, simetri, minimalis, street photography), sudut pandang kamera, dan kedalaman bidang (DOF).
+            * Pencahayaan dan Suasana: Jenis pencahayaan (misalnya, Golden Hour, cahaya keras, cahaya lembut), kontras, palet warna dominan, dan suasana emosional yang ditimbulkan.
+
+            **3. Interpretasi Kontekstual dan Lokasi:**
+            * Perkiraan Lokasi: Berdasarkan arsitektur, vegetasi, tanda-tanda jalan, atau elemen khas lainnya, berikan perkiraan lokasi geografis (kota, negara, atau jenis lingkungan seperti pedesaan, perkotaan). Nyatakan jika lokasi tidak dapat ditentukan.
+            * Konteks Waktu: Perkiraan waktu atau musim (misalnya, pagi hari, musim gugur) berdasarkan pencahayaan dan pakaian/lingkungan.
+            * Cerita/Makna: Interpretasi singkat mengenai pesan atau narasi yang disampaikan oleh keseluruhan foto.
+            
+            Tuliskan hasil analisis dalam bahasa Indonesia yang formal, terstruktur, dan sangat rinci, menggunakan format daftar yang jelas.`;
+
+            const userQuery = "Lakukan analisis visual, teknis, dan kontekstual yang sangat mendalam dan lengkap dari gambar ini. Pastikan Anda mengidentifikasi semua detail kecil, termasuk perkiraan perangkat dan lokasi.";
+
+            const payload = {
+                contents: [
+                    {
+                        role: "user",
+                        parts: [
+                            { text: userQuery },
+                            {
+                                inlineData: {
+                                    mimeType: mimeType,
+                                    data: base64Image
+                                }
+                            }
+                        ]
+                    }
+                ],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                }
+            };
+            
+            // Logika Backoff Eksponensial
+            const MAX_RETRIES = 3;
+            for (let i = 0; i < MAX_RETRIES; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.status === 401 || response.status === 403) {
+                         throw new Error("Kunci API tidak valid atau izin ditolak. Pastikan Kunci API Anda benar.");
+                    }
+
+                    if (!response.ok) {
+                        if (response.status === 429 && i < MAX_RETRIES - 1) {
+                            const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                            console.warn(`Gemini API: Pembatasan laju terdeteksi. Mencoba lagi dalam ${Math.round(delay / 1000)}s...`);
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            continue;
+                        }
+                        throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    const candidate = result.candidates?.[0];
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        return candidate.content.parts[0].text;
+                    } else {
+                        // Periksa jika ada pesan kesalahan dari API
+                        const errorMessageFromAPI = result.error?.message || "Respons tidak valid atau kosong.";
+                        throw new Error(`Gemini API: ${errorMessageFromAPI}`);
+                    }
+
+                } catch (error) {
+                    console.error("Error selama panggilan API Gemini:", error);
+                    if (i === MAX_RETRIES - 1) throw error; // Lempar error setelah percobaan terakhir
+                }
+            }
+            throw new Error("Gagal terhubung ke Gemini API setelah beberapa kali percobaan.");
+        }
+
+        // --- Penanganan UI dan Event ---
+
+        const fileInput = document.getElementById('file-input');
+        const imagePreview = document.getElementById('image-preview');
+        const placeholderText = document.getElementById('placeholder-text');
+        const analyzeButton = document.getElementById('analyze-button');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const resultBox = document.getElementById('result-box');
+        const errorMessage = document.getElementById('error-message');
+
+        /**
+         * Menangani perubahan file input (unggah gambar).
+         */
+        fileInput.addEventListener('change', async (event) => {
+            errorMessage.textContent = "";
+            errorMessage.classList.add('hidden');
+            resultBox.textContent = "Hasil analisis akan muncul di sini.";
+
+            const file = event.target.files[0];
+            if (file) {
+                try {
+                    // Simpan tipe MIME file
+                    fileMimeType = file.type;
+
+                    // 1. Tampilkan pratinjau gambar
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        imagePreview.src = e.target.result;
+                        imagePreview.style.display = 'block';
+                        placeholderText.style.display = 'none';
+                    };
+                    reader.readAsDataURL(file);
+
+                    // 2. Konversi ke Base64 dan simpan
+                    fileData = await fileToBase64(file);
+                    analyzeButton.disabled = false;
+                    analyzeButton.textContent = "Mulai Analisis Gambar Baru";
+
+                } catch (error) {
+                    errorMessage.textContent = "Gagal memproses file gambar: " + error.message;
+                    errorMessage.classList.remove('hidden');
+                    console.error("File processing error:", error);
+                    analyzeButton.disabled = true;
+                }
+            } else {
+                imagePreview.style.display = 'none';
+                placeholderText.style.display = 'block';
+                analyzeButton.disabled = true;
+                analyzeButton.textContent = "Mulai Analisis";
+                fileData = null;
+            }
+        });
+
+        /**
+         * Menangani klik tombol analisis.
+         */
+        analyzeButton.addEventListener('click', async () => {
+            if (!fileData) {
+                errorMessage.textContent = "Silakan unggah gambar terlebih dahulu.";
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+            if (!apiKey || apiKey === "") {
+                errorMessage.textContent = "ERROR: Kunci API Gemini belum dimasukkan dalam kode JavaScript.";
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+
+
+            // Atur status UI
+            analyzeButton.disabled = true;
+            loadingIndicator.style.display = 'block';
+            resultBox.textContent = "Menganalisis gambar, mohon tunggu sebentar...";
+            errorMessage.textContent = "";
+            errorMessage.classList.add('hidden');
+
+            try {
+                // Panggil API dengan tipe MIME yang benar
+                const resultText = await analyzeImage(fileData, fileMimeType);
+                resultBox.textContent = resultText;
+            } catch (error) {
+                const errorMsg = error.message || "Terjadi kesalahan yang tidak diketahui saat memanggil API.";
+                resultBox.textContent = "Gagal mendapatkan analisis.";
+                errorMessage.textContent = `Error: ${errorMsg}`;
+                errorMessage.classList.remove('hidden');
+            } finally {
+                // Kembalikan status UI
+                analyzeButton.disabled = false;
+                loadingIndicator.style.display = 'none';
+            }
+        });
+
+        // --- 1. Service Worker & PWA ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(() => console.log('Service Worker Terdaftar'))
+                    .catch(err => console.log('Gagal SW:', err));
+            });
+        }
+
+        let deferredPrompt;
+        const installBtn = document.getElementById('install-btn');
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = 'block';
+        });
+        installBtn.addEventListener('click', () => {
+            installBtn.style.display = 'none';
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(() => deferredPrompt = null);
+        });
+
+        const offlineBanner = document.getElementById('offline-banner');
+        const analyzeBtn = document.getElementById('analyze-button');
+
+        function updateOnlineStatus() {
+            if (navigator.onLine) {
+                offlineBanner.style.display = 'none';
+                if(fileData) analyzeBtn.disabled = false;
+            } else {
+                offlineBanner.style.display = 'block';
+                analyzeBtn.disabled = true;
+            }
+        }
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        updateOnlineStatus();
+
+    </script>
+
+</body>
+</html>
+

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Pro Live Editor</title>
+    
+    <!-- PWA Manifest Link -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#252526">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1005/1005141.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --app-height: 100dvh; --editor-bg: #1e1e1e; --gutter-bg: #252526; --gutter-text: #858585; --accent: #10b981; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--editor-bg); color: #d4d4d4; height: var(--app-height); width: 100vw; overflow: hidden; display: flex; flex-direction: column; }
+        .editor-wrapper { position: relative; display: flex; height: 100%; width: 100%; overflow: hidden; }
+        .gutter { width: 40px; min-width: 40px; background-color: var(--gutter-bg); color: var(--gutter-text); text-align: right; padding: 1rem 0.5rem 1rem 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; user-select: none; border-right: 1px solid #333; }
+        .line-error { color: #ff5555 !important; font-weight: bold; background-color: rgba(255, 0, 0, 0.1); }
+        textarea { flex: 1; resize: none; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; background-color: var(--editor-bg); color: #e0e0e0; border: none; outline: none; padding: 1rem 0.5rem; white-space: pre; overflow: auto; tab-size: 2; }
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: #1e1e1e; }
+        ::-webkit-scrollbar-thumb { background: #424242; border-radius: 5px; border: 2px solid #1e1e1e; }
+        .hidden-panel { display: none !important; }
+        .active-tab { border-bottom: 2px solid var(--accent); color: #fff; background-color: #2d2d2d; }
+        #error-console { position: absolute; bottom: 0; left: 0; width: 100%; background-color: #3b0000; color: #ffb3b3; font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 8px 12px; border-top: 2px solid #ff5555; display: none; z-index: 20; max-height: 100px; overflow-y: auto; }
+        
+        /* Tombol Install */
+        #install-btn { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="h-14 bg-[#252526] border-b border-[#333] flex items-center justify-between px-3 shrink-0 z-10">
+        <div class="flex items-center gap-2">
+            <i class="ph ph-brackets-curly text-green-500 text-2xl"></i>
+            <h1 class="text-sm md:text-base font-bold text-gray-200 hidden sm:block">
+                Pro<span class="text-green-400 font-light">Editor</span>
+            </h1>
+            <!-- Tombol Install PWA -->
+            <button id="install-btn" class="bg-gray-700 hover:bg-gray-600 text-xs px-2 py-1 rounded text-white ml-2 animate-pulse">
+                <i class="ph ph-download-simple"></i> Install App
+            </button>
+        </div>
+
+        <div class="flex md:hidden bg-[#1e1e1e] rounded-md p-1 border border-[#333]">
+            <button onclick="toggleMobileView('editor')" id="btn-view-editor" class="px-3 py-1 rounded text-xs font-semibold text-white bg-gray-700 transition-all">Editor</button>
+            <button onclick="toggleMobileView('preview')" id="btn-view-preview" class="px-3 py-1 rounded text-xs font-medium text-gray-400 transition-all">Preview</button>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button onclick="toggleFullscreen()" class="p-2 text-gray-400 hover:text-white rounded hover:bg-[#333]" title="Layar Penuh"><i class="ph ph-arrows-out text-xl"></i></button>
+            <button onclick="forceRun()" class="bg-green-700 hover:bg-green-600 text-white text-xs md:text-sm font-semibold py-1.5 px-3 rounded flex items-center gap-1 shadow-lg">
+                <i class="ph ph-play"></i> Run
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex overflow-hidden relative">
+        <div id="editor-panel" class="w-full md:w-1/2 flex flex-col border-r border-[#333] bg-[#1e1e1e]">
+            <div class="flex bg-[#252526] border-b border-[#333]">
+                <button data-lang="html" class="file-tab active-tab px-4 py-2 text-xs md:text-sm text-gray-400 flex items-center gap-2 hover:bg-[#2d2d2d] transition"><i class="ph ph-file-html text-orange-500"></i> HTML</button>
+                <button data-lang="css" class="file-tab px-4 py-2 text-xs md:text-sm text-gray-400 flex items-center gap-2 hover:bg-[#2d2d2d] transition"><i class="ph ph-file-css text-blue-400"></i> CSS</button>
+                <button data-lang="js" class="file-tab px-4 py-2 text-xs md:text-sm text-gray-400 flex items-center gap-2 hover:bg-[#2d2d2d] transition"><i class="ph ph-file-js text-yellow-400"></i> JS</button>
+            </div>
+            <div class="flex-1 relative group overflow-hidden">
+                <div id="html-container" class="editor-wrapper"><div id="html-gutter" class="gutter">1</div><textarea id="html-code" spellcheck="false" placeholder="Tulis HTML..."></textarea></div>
+                <div id="css-container" class="editor-wrapper hidden-panel"><div id="css-gutter" class="gutter">1</div><textarea id="css-code" spellcheck="false" placeholder="Tulis CSS..."></textarea></div>
+                <div id="js-container" class="editor-wrapper hidden-panel"><div id="js-gutter" class="gutter">1</div><textarea id="js-code" spellcheck="false" placeholder="Tulis JS..."></textarea></div>
+            </div>
+        </div>
+
+        <div id="preview-panel" class="w-full md:w-1/2 flex flex-col bg-white hidden md:flex relative">
+            <div class="h-8 bg-[#f3f4f6] border-b border-gray-300 flex items-center justify-between px-3 text-[11px] text-gray-500 uppercase font-bold tracking-wider">
+                <span>Output Browser</span><span id="screen-status" class="font-normal text-gray-400">Ready</span>
+            </div>
+            <iframe id="output-frame" title="Output" class="flex-1"></iframe>
+            <div id="error-console"><div class="flex justify-between items-start"><span id="error-message">Tidak ada error.</span><button onclick="document.getElementById('error-console').style.display='none'" class="text-white hover:text-gray-300"><i class="ph ph-x"></i></button></div></div>
+        </div>
+    </main>
+
+    <script>
+        // --- 1. Service Worker Registration (PWA Logic) ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('SW Registered!', reg.scope))
+                    .catch(err => console.log('SW Fail:', err));
+            });
+        }
+
+        // --- Install Prompt Logic ---
+        let deferredPrompt;
+        const installBtn = document.getElementById('install-btn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = 'block';
+        });
+
+        installBtn.addEventListener('click', () => {
+            installBtn.style.display = 'none';
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted install');
+                }
+                deferredPrompt = null;
+            });
+        });
+
+        // --- 2. Editor Logic ---
+        const editors = {
+            html: { area: document.getElementById('html-code'), gutter: document.getElementById('html-gutter'), container: document.getElementById('html-container') },
+            css: { area: document.getElementById('css-code'), gutter: document.getElementById('css-gutter'), container: document.getElementById('css-container') },
+            js: { area: document.getElementById('js-code'), gutter: document.getElementById('js-gutter'), container: document.getElementById('js-container') }
+        };
+        const outputFrame = document.getElementById('output-frame');
+        const errorConsole = document.getElementById('error-console');
+        const errorMessage = document.getElementById('error-message');
+        const screenStatus = document.getElementById('screen-status');
+
+        function updateLineNumbers(lang) {
+            const editor = editors[lang];
+            const lines = editor.area.value.split('\n').length;
+            if (lines !== editor.gutter.children.length) {
+                editor.gutter.innerHTML = Array(lines).fill(0).map((_, i) => `<div>${i + 1}</div>`).join('');
+            }
+        }
+        function syncScroll(lang) { editors[lang].gutter.scrollTop = editors[lang].area.scrollTop; }
+        
+        Object.keys(editors).forEach(lang => {
+            const ed = editors[lang];
+            ed.area.addEventListener('input', () => { updateLineNumbers(lang); handleInput(lang); });
+            ed.area.addEventListener('scroll', () => syncScroll(lang));
+            ed.area.addEventListener('keydown', (e) => {
+                 if (e.key === 'Tab') { e.preventDefault(); const s = ed.area.selectionStart; ed.area.value = ed.area.value.substring(0, s) + "  " + ed.area.value.substring(ed.area.selectionEnd); ed.area.selectionStart = ed.area.selectionEnd = s + 2; handleInput(lang); }
+            });
+            updateLineNumbers(lang);
+        });
+
+        function clearErrors() {
+            errorConsole.style.display = 'none';
+            editors.js.gutter.querySelectorAll('div').forEach(div => div.classList.remove('line-error'));
+        }
+
+        function reportError(msg, lineNo) {
+            errorConsole.style.display = 'block';
+            errorMessage.innerHTML = `<strong>Error (Baris ${lineNo || '?'}):</strong> ${msg}`;
+            if (lineNo && !isNaN(lineNo)) {
+                const target = editors.js.gutter.children[lineNo - 1];
+                if (target) { target.classList.add('line-error'); target.scrollIntoView({block: "center", behavior: "smooth"}); }
+            }
+        }
+
+        function compile() {
+            clearErrors();
+            const html = editors.html.area.value;
+            const css = `<style>${editors.css.area.value}</style>`;
+            const jsContent = editors.js.area.value;
+            const jsScript = `<script>window.onerror=function(m,s,l,c,e){window.parent.postMessage({type:'error',message:m,line:l-1},'*');return true;};try{${jsContent}}catch(e){throw e;}<\/script>`;
+            const combined = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0">${css}</head><body>${html}${jsScript}</body></html>`;
+            const doc = outputFrame.contentDocument || outputFrame.contentWindow.document;
+            doc.open(); doc.write(combined); doc.close();
+            screenStatus.textContent = `${outputFrame.contentWindow.innerWidth}x${outputFrame.contentWindow.innerHeight}`;
+        }
+
+        window.addEventListener('message', (e) => { if (e.data && e.data.type === 'error') reportError(e.data.message, e.data.line); });
+
+        let timer;
+        function handleInput(lang) { clearTimeout(timer); timer = setTimeout(compile, 600); }
+
+        const tabButtons = document.querySelectorAll('.file-tab');
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                tabButtons.forEach(b => { b.classList.remove('active-tab'); b.classList.add('text-gray-400'); });
+                btn.classList.add('active-tab'); btn.classList.remove('text-gray-400');
+                ['html','css','js'].forEach(l => document.getElementById(`${l}-container`).classList.add('hidden-panel'));
+                document.getElementById(`${btn.dataset.lang}-container`).classList.remove('hidden-panel');
+                updateLineNumbers(btn.dataset.lang);
+            });
+        });
+
+        const editorPanel = document.getElementById('editor-panel');
+        const previewPanel = document.getElementById('preview-panel');
+        const btnEditor = document.getElementById('btn-view-editor');
+        const btnPreview = document.getElementById('btn-view-preview');
+
+        function toggleMobileView(view) {
+            if (window.innerWidth >= 768) return; 
+            if (view === 'editor') {
+                editorPanel.classList.remove('hidden'); editorPanel.classList.add('flex');
+                previewPanel.classList.add('hidden'); previewPanel.classList.remove('flex');
+                btnEditor.className = "px-3 py-1 rounded text-xs font-semibold text-white bg-gray-700";
+                btnPreview.className = "px-3 py-1 rounded text-xs font-medium text-gray-400";
+            } else {
+                editorPanel.classList.add('hidden'); editorPanel.classList.remove('flex');
+                previewPanel.classList.remove('hidden'); previewPanel.classList.add('flex'); compile();
+                btnPreview.className = "px-3 py-1 rounded text-xs font-semibold text-white bg-gray-700";
+                btnEditor.className = "px-3 py-1 rounded text-xs font-medium text-gray-400";
+            }
+        }
+
+        function toggleFullscreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else if (document.exitFullscreen) document.exitFullscreen(); }
+        function forceRun() { compile(); if(window.innerWidth < 768) toggleMobileView('preview'); }
+
+        editors.html.area.value = `<div class="container">\n  <h1>Offline Ready!</h1>\n  <p>Aplikasi ini sudah PWA.</p>\n  <button id="btn">Tes JS</button>\n</div>`;
+        editors.css.area.value = `body{font-family:sans-serif;padding:20px;background:#222;color:white;display:flex;justify-content:center;align-items:center;height:100vh}.container{background:#333;padding:20px;border-radius:10px;text-align:center}button{padding:10px 20px;background:#10b981;border:none;color:white;cursor:pointer;margin-top:10px;border-radius:5px}`;
+        editors.js.area.value = `document.getElementById('btn').addEventListener('click', () => {\n  alert("Aplikasi berjalan lancar!");\n});`;
+
+        updateLineNumbers('html'); updateLineNumbers('css'); updateLineNumbers('js'); compile();
+    </script>
+</body>
+</html>

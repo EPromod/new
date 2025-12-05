@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisis Forensik Foto Berbasis AI</title>
+    
+    <!-- PWA Manifest & Meta -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a2e">
+    <link rel="apple-touch-icon" href="icon.png">
+
+    <!-- Memuat Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Pustaka EXIF-JS -->
+    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a2e;
+            color: #e4e4f0;
+        }
+        .card {
+            background-color: #2b2b45;
+            border: 1px solid #4a4a6b;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        .result-title { color: #6a99ff; }
+        .badge {
+            display: inline-block; padding: 0.25rem 0.75rem;
+            border-radius: 9999px; font-size: 0.875rem; font-weight: 600;
+        }
+        .status-clean { background-color: #2e8b57; color: #e4e4f0; }
+        .status-tampered { background-color: #cc0000; color: #e4e4f0; }
+        .ai-report { white-space: pre-wrap; line-height: 1.6; text-align: left; }
+        
+        /* Gaya Tombol Install & Offline */
+        #installBtn { display: none; }
+        .offline-badge { 
+            background: #ef4444; color: white; padding: 2px 8px; 
+            border-radius: 4px; font-size: 0.75rem; font-weight: bold; 
+            display: none; vertical-align: middle; margin-left: 10px;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8 min-h-screen">
+
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-8 relative">
+            <!-- Tombol Install PWA -->
+            <button id="installBtn" class="mb-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-full shadow-lg transition transform hover:scale-105">
+                📲 Install Aplikasi
+            </button>
+
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white mb-2">
+                Penganalisis Forensik Digital
+                <span id="offlineBadge" class="offline-badge">OFFLINE</span>
+            </h1>
+            <p class="text-gray-400">Menghasilkan Laporan Forensik Lengkap (AI Enhanced)</p>
+        </header>
+
+        <!-- Area Input File -->
+        <div class="card p-6 rounded-xl mb-8">
+            <label for="fileInput" class="block text-lg font-semibold mb-3 text-white">
+                Unggah File Gambar (< 5MB)
+            </label>
+            <input type="file" id="fileInput" accept="image/*" class="w-full text-sm text-gray-300
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold
+                file:bg-indigo-500 file:text-white
+                hover:file:bg-indigo-600 cursor-pointer"
+            />
+            <p id="loadingMessage" class="mt-4 text-yellow-400 font-medium hidden">
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-yellow-400 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Sedang menganalisis file...
+            </p>
+        </div>
+
+        <!-- Area Hasil -->
+        <div id="resultsContainer" class="hidden">
+            <h2 class="text-2xl font-bold text-white mb-6">Hasil Analisis Forensik</h2>
+
+            <!-- Laporan AI Forensik -->
+            <div class="card p-6 rounded-xl mb-8">
+                <h3 class="text-xl font-semibold result-title mb-3">Laporan Analisis Forensik AI</h3>
+                <div id="aiReportStatus" class="text-yellow-400 font-medium mb-4">
+                    AI sedang menyusun laporan...
+                </div>
+                <div id="aiReportContent" class="ai-report text-gray-300 bg-gray-700 p-4 rounded-lg"></div>
+            </div>
+
+            <!-- Preview & Status Integrity -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <div class="card p-6 rounded-xl lg:col-span-2">
+                    <h3 class="text-xl font-semibold result-title mb-3">Pratinjau Gambar</h3>
+                    <div class="flex justify-center items-center h-64 bg-gray-700 rounded-lg overflow-hidden">
+                        <img id="imagePreview" class="max-h-full max-w-full object-contain" src="" alt="Pratinjau">
+                    </div>
+                    <p class="mt-3 text-sm text-gray-400 text-center" id="imageName"></p>
+                </div>
+
+                <div class="card p-6 rounded-xl lg:col-span-1">
+                    <h3 class="text-xl font-semibold result-title mb-3">Status Integritas</h3>
+                    <div id="integrityStatus" class="flex flex-col space-y-4">
+                        <p class="text-gray-300"><span class="font-bold">Keaslian:</span> <span id="tamperStatusBadge" class="badge status-clean">Menunggu</span></p>
+                        <p class="text-gray-300"><span class="font-bold">Software:</span> <span id="softwareDetection" class="text-gray-400"></span></p>
+                        <p class="text-sm text-gray-500 italic border-t border-gray-600 pt-3">*Berdasarkan metadata.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Teknis & EXIF -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="card p-6 rounded-xl">
+                    <h3 class="text-xl font-semibold result-title mb-4">Data Teknis File</h3>
+                    <ul class="space-y-3 text-sm">
+                        <li class="flex justify-between border-b border-gray-600 pb-2"><span class="font-medium">Nama:</span> <span id="detailFileName" class="text-yellow-300 truncate max-w-[70%]"></span></li>
+                        <li class="flex justify-between border-b border-gray-600 pb-2"><span class="font-medium">Ukuran:</span> <span id="detailFileSize"></span></li>
+                        <li class="flex justify-between border-b border-gray-600 pb-2"><span class="font-medium">Dimensi:</span> <span id="detailDimensions"></span></li>
+                        <li class="flex justify-between border-b border-gray-600 pb-2"><span class="font-medium">Format:</span> <span id="detailMimeType"></span></li>
+                        <li class="flex flex-col border-b border-gray-600 pb-2"><span class="font-medium mb-1">Hash SHA-256:</span> <code id="detailHash" class="text-xs break-all bg-gray-700 p-2 rounded-md text-green-300">...</code></li>
+                    </ul>
+                </div>
+
+                <div class="card p-6 rounded-xl">
+                    <h3 class="text-xl font-semibold result-title mb-4">Metadata EXIF (Asli)</h3>
+                    <ul class="space-y-3 text-sm" id="exifList">
+                        <!-- Diisi via JS -->
+                    </ul>
+                </div>
+
+                <div class="card p-6 rounded-xl md:col-span-2">
+                    <h3 class="text-xl font-semibold result-title mb-4">Palette Warna Dominan</h3>
+                    <div id="colorPalette" class="flex flex-wrap gap-4 justify-center"></div>
+                </div>
+            </div>
+
+            <footer class="mt-8 pt-4 border-t border-gray-700 text-center text-sm text-gray-500">
+                Peringatan: Alat ini adalah bantuan analisis awal. Gunakan software profesional untuk kasus hukum.
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURATION & PWA INSTALLER ---
+        const API_KEY = "AIzaSyDBhC9j1ZAamQHg38eMpwycLnwJFLF_cnQ"; 
+        
+        // Registrasi Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('SW terdaftar:', reg.scope))
+                    .catch(err => console.error('SW gagal:', err));
+            });
+        }
+
+        // Logika Tombol Install
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = 'inline-block';
+        });
+        installBtn.addEventListener('click', () => {
+            installBtn.style.display = 'none';
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((result) => { deferredPrompt = null; });
+        });
+
+        // Deteksi Online/Offline
+        const offlineBadge = document.getElementById('offlineBadge');
+        function updateOnlineStatus() {
+            if (navigator.onLine) {
+                offlineBadge.style.display = 'none';
+            } else {
+                offlineBadge.style.display = 'inline-block';
+            }
+        }
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        updateOnlineStatus();
+
+        // --- 2. DOM ELEMENTS ---
+        const fileInput = document.getElementById('fileInput');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const imagePreview = document.getElementById('imagePreview');
+        const aiReportContent = document.getElementById('aiReportContent');
+        const aiReportStatus = document.getElementById('aiReportStatus');
+        const exifList = document.getElementById('exifList');
+        
+        const NOT_FOUND = "Tidak Ditemukan";
+
+        // --- 3. HELPER FUNCTIONS ---
+        function bufferToHex(buffer) {
+            return Array.prototype.map.call(new Uint8Array(buffer), x => (('00' + x.toString(16)).slice(-2))).join('');
+        }
+        async function calculateSHA256(buffer) {
+            try {
+                const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+                return bufferToHex(hashBuffer);
+            } catch (e) { return "Error"; }
+        }
+
+        function extractDominantColors(img) {
+            const palette = document.getElementById('colorPalette');
+            palette.innerHTML = '<p class="text-gray-400">Memproses...</p>';
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 50; canvas.height = 50;
+                ctx.drawImage(img, 0, 0, 50, 50);
+                const imageData = ctx.getImageData(0, 0, 50, 50).data;
+                const colorMap = {};
+                for (let i = 0; i < imageData.length; i += 16) { // Sampling
+                    const key = `${Math.floor(imageData[i]/16)*16},${Math.floor(imageData[i+1]/16)*16},${Math.floor(imageData[i+2]/16)*16}`;
+                    colorMap[key] = (colorMap[key] || 0) + 1;
+                }
+                const sorted = Object.entries(colorMap).sort((a,b) => b[1] - a[1]).slice(0, 5);
+                palette.innerHTML = '';
+                sorted.forEach(([rgb]) => {
+                    const [r,g,b] = rgb.split(',');
+                    const div = document.createElement('div');
+                    div.className = 'w-12 h-12 rounded-full border-2 border-gray-400 shadow-md';
+                    div.style.backgroundColor = `rgb(${r},${g},${b})`;
+                    div.title = `RGB(${r},${g},${b})`;
+                    palette.appendChild(div);
+                });
+            } catch (e) { palette.innerHTML = 'Gagal'; }
+        }
+
+        // --- 4. CORE LOGIC ---
+        function checkSoftwareTamper(software) {
+            if (!software || software === NOT_FOUND) return { status: "Metadata Kosong", css: "status-tampered", desc: "EXIF Software hilang." };
+            const s = software.toLowerCase();
+            if (s.includes('photoshop') || s.includes('gimp') || s.includes('lightroom')) return { status: "Diedit", css: "status-tampered", desc: `Terdeteksi: ${software}` };
+            if (s.includes('whatsapp') || s.includes('facebook')) return { status: "Kompresi Sosmed", css: "status-tampered", desc: `Via Aplikasi: ${software}` };
+            return { status: "Asli (Kemungkinan)", css: "status-clean", desc: `Software Kamera: ${software}` };
+        }
+
+        async function generateAIReport(technicalData) {
+            // CEK KONEKSI INTERNET
+            if (!navigator.onLine) {
+                aiReportStatus.classList.add('hidden');
+                aiReportContent.innerHTML = `<span class="text-red-400 font-bold">⚠️ Mode Offline:</span> Analisis AI memerlukan internet. Namun data EXIF, Hash, dan pemeriksaan lokal di bawah ini tetap valid.`;
+                return;
+            }
+
+            aiReportStatus.innerHTML = "Menghubungi Server AI...";
+            aiReportStatus.classList.remove('hidden');
+            
+            const prompt = `Analisis forensik gambar. Data:\n${technicalData}\n\nBerikan kesimpulan singkat (3 paragraf): Indikasi manipulasi, Integritas Metadata, dan Kesimpulan Akhir. Bahasa Indonesia.`;
+            
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const data = await res.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Gagal mendapat respons AI.";
+                aiReportContent.textContent = text;
+            } catch (e) {
+                aiReportContent.textContent = "Gagal menghubungi AI. Cek koneksi internet.";
+            } finally {
+                aiReportStatus.classList.add('hidden');
+            }
+        }
+
+        function renderExifItem(label, value) {
+            return `<li class="flex justify-between border-b border-gray-600 pb-2"><span class="font-medium">${label}:</span> <span>${value}</span></li>`;
+        }
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            loadingMessage.classList.remove('hidden');
+            resultsContainer.classList.add('hidden');
+            aiReportContent.textContent = '';
+
+            // 1. Baca File & Hash
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const buffer = event.target.result;
+                const hash = await calculateSHA256(buffer);
+                
+                document.getElementById('detailFileName').textContent = file.name;
+                document.getElementById('detailFileSize').textContent = (file.size/1024/1024).toFixed(2) + " MB";
+                document.getElementById('detailMimeType').textContent = file.type;
+                document.getElementById('detailHash').textContent = hash;
+                document.getElementById('imageName').textContent = file.name;
+
+                // 2. Preview
+                const url = URL.createObjectURL(file);
+                imagePreview.src = url;
+                const img = new Image();
+                img.onload = () => {
+                    document.getElementById('detailDimensions').textContent = `${img.width} x ${img.height} px`;
+                    extractDominantColors(img);
+                };
+                img.src = url;
+
+                // 3. EXIF Data
+                EXIF.getData(file, async function() {
+                    const make = EXIF.getTag(this, "Make") || "";
+                    const model = EXIF.getTag(this, "Model") || "";
+                    const software = EXIF.getTag(this, "Software") || NOT_FOUND;
+                    const date = EXIF.getTag(this, "DateTimeOriginal") || NOT_FOUND;
+                    const iso = EXIF.getTag(this, "ISOSpeedRatings") || NOT_FOUND;
+                    const shutter = EXIF.getTag(this, "ShutterSpeedValue") ? "1/" + Math.round(Math.pow(2, EXIF.getTag(this, "ShutterSpeedValue"))) + "s" : NOT_FOUND;
+
+                    // Render EXIF ke UI
+                    let html = "";
+                    html += renderExifItem("Kamera", `${make} ${model}`);
+                    html += renderExifItem("Software", software);
+                    html += renderExifItem("Tanggal", date);
+                    html += renderExifItem("ISO", iso);
+                    html += renderExifItem("Shutter", shutter);
+                    exifList.innerHTML = html;
+
+                    // Cek Tamper
+                    const tamper = checkSoftwareTamper(software);
+                    const badge = document.getElementById('tamperStatusBadge');
+                    badge.textContent = tamper.status;
+                    badge.className = `badge ${tamper.css}`;
+                    document.getElementById('softwareDetection').textContent = tamper.desc;
+
+                    // 4. Generate AI Report
+                    const techData = `File: ${file.name}, Hash: ${hash}, Software: ${software}, Kamera: ${make} ${model}, Tanggal: ${date}`;
+                    await generateAIReport(techData);
+
+                    loadingMessage.classList.add('hidden');
+                    resultsContainer.classList.remove('hidden');
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+</body>
+</html>

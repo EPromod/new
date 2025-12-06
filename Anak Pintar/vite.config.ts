@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 // PENTING: Ganti 'nama-repository-anda' dengan nama repository GitHub yang Anda buat.
 // Contoh: Jika repo anda https://github.com/budi/dunia-pintar, maka isinya '/dunia-pintar/'
-const REPO_NAME = '/new/Anak pintar/'; 
+const REPO_NAME = '/new/Anak Pintar/'; 
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');

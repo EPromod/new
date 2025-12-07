@@ -1,0 +1,7 @@
+{
+  "name": "Dunia Pintar Anak",
+  "description": "Aplikasi belajar interaktif untuk anak-anak mengenal huruf, angka, hewan, dan alam semesta dengan bantuan AI.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

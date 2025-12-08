@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Ucapan Cinta Premium</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            /* Luxurious Dark Gradient Background */
+            background: linear-gradient(135deg, #1f0842 0%, #3a065c 100%);
+        }
+
+        /* Card Styling - Dark Theme */
+        .premium-card {
+            background-color: #2c0e52; /* Deep Purple */
+            color: #f7f7f7;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            border: 2px solid #5d3596; /* Lighter Purple Border */
+            transition: all 0.4s ease-in-out;
+        }
+
+        /* Gold Gradient Text */
+        .gold-text {
+            background: linear-gradient(45deg, #ffeb3b, #f59e0b, #d97706);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Animated Button - Vibrant Purple/Pink */
+        .animated-btn {
+            background: linear-gradient(90deg, #d32f2f 0%, #ff5722 100%); /* Orange/Red for contrast */
+            transition: all 0.3s ease;
+        }
+        .animated-btn:hover {
+            box-shadow: 0 6px 20px rgba(255, 87, 34, 0.6);
+            transform: translateY(-2px);
+            background: linear-gradient(90deg, #ff5722 0%, #d32f2f 100%);
+        }
+
+        /* Share Button - Green */
+        .share-btn {
+            background-color: #4caf50;
+            transition: all 0.3s ease;
+        }
+        .share-btn:hover {
+            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.4);
+            transform: scale(1.05);
+        }
+
+        /* Custom Scrollbar for Output */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #4a148c; /* Darker Purple Track */
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #fbc02d; /* Gold Thumb */
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #f9a825;
+        }
+
+        /* Output/Input Styling */
+        .input-style {
+            background-color: #3b1968;
+            color: #e0e0e0;
+            border-color: #673ab7;
+        }
+        .input-style:focus {
+            border-color: #ffeb3b;
+            box-shadow: 0 0 0 1px #ffeb3b;
+        }
+
+        /* Shareable Card Styling */
+        #shareableCard {
+            background: linear-gradient(180deg, #4a148c 0%, #1a023a 100%);
+            border: 3px solid #ffeb3b;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            position: relative;
+        }
+        #shareableCard::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('https://placehold.co/600x400/8e44ad/ffffff?text=L+O+V+E') no-repeat center center;
+            background-size: cover;
+            opacity: 0.1;
+            z-index: 0;
+        }
+        .card-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Modal backdrop for the sharing view */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 50;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="app" class="w-full max-w-lg mx-auto z-10">
+        <div class="premium-card p-6 md:p-10 rounded-3xl">
+
+            <!-- Header Section -->
+            <header class="text-center mb-8">
+                <div class="flex items-center justify-center mb-2">
+                    <i data-lucide="sparkles" class="w-8 h-8 mr-3 text-yellow-400 fill-yellow-300"></i>
+                    <h1 class="text-4xl font-extrabold gold-text drop-shadow-lg">
+                        Generator Kasih Ultra
+                    </h1>
+                </div>
+                <p class="text-gray-400 italic text-sm">
+                    Ciptakan keajaiban kata-kata untuk kekasih Anda.
+                </p>
+            </header>
+
+            <!-- Input Section -->
+            <div class="space-y-5">
+                <!-- Lover's Nickname -->
+                <div>
+                    <label for="nicknameInput" class="block text-sm font-medium text-gray-200 mb-1 flex items-center">
+                        <i data-lucide="heart" class="w-4 h-4 mr-1 text-red-500 fill-red-500"></i> Nama Panggilan (Opsional):
+                    </label>
+                    <input type="text" id="nicknameInput"
+                        class="w-full p-3 border-2 input-style rounded-xl focus:ring-yellow-400 transition duration-150 shadow-inner"
+                        placeholder="Contoh: Sayangku, My Love, Cinta Abadi">
+                </div>
+
+                <!-- Tone/Style Selector -->
+                <div>
+                    <label for="styleSelect" class="block text-sm font-medium text-gray-200 mb-1 flex items-center">
+                        <i data-lucide="feather" class="w-4 h-4 mr-1 text-purple-400"></i> Pilih Gaya Bahasa:
+                    </label>
+                    <select id="styleSelect"
+                        class="w-full p-3 border-2 input-style rounded-xl bg-transparent focus:ring-yellow-400 transition duration-150 shadow-inner appearance-none pr-10">
+                        <option value="Sangat Puitis dan Mendalam" class="bg-[#2c0e52] text-white">Puitis & Mendalam (Sangat Menyentuh)</option>
+                        <option value="Hangat, Tulus, dan Jujur" class="bg-[#2c0e52] text-white">Hangat & Tulus (Elegan)</option>
+                        <option value="Ceria, Menggoda, dan Penuh Energi" class="bg-[#2c0e52] text-white">Ceria & Menggoda (Fun)</option>
+                        <option value="Formal, Anggun, dan Penuh Penghargaan" class="bg-[#2c0e52] text-white">Formal & Anggun (Luar Biasa)</option>
+                    </select>
+                </div>
+
+                <!-- Context Input -->
+                <div>
+                    <label for="contextInput" class="block text-sm font-medium text-gray-200 mb-1 flex items-center">
+                        <i data-lucide="message-square-text" class="w-4 h-4 mr-1 text-yellow-400"></i> Konteks Utama Pesan (Wajib):
+                    </label>
+                    <textarea id="contextInput" rows="3"
+                        class="w-full p-3 border-2 input-style rounded-xl focus:ring-yellow-400 transition duration-150 resize-none shadow-inner"
+                        placeholder="Contoh: Ulang tahun, janji untuk selalu ada, atau pesan rindu saat LDR."></textarea>
+                </div>
+
+                <button id="generateBtn"
+                    class="animated-btn w-full flex items-center justify-center py-3 px-4 text-lg font-bold rounded-xl text-white shadow-xl focus:outline-none focus:ring-4 focus:ring-red-400 disabled:opacity-50"
+                    onclick="generateSpeech()">
+                    <i data-lucide="sparkles" class="w-5 h-5 mr-2"></i>
+                    Lahirkan Pesan yang Memukau
+                </button>
+            </div>
+
+            <!-- Output Section -->
+            <div class="mt-8">
+                <h2 class="text-xl font-bold text-yellow-400 mb-3 border-b border-purple-400 pb-1 flex items-center">
+                    <i data-lucide="scroll" class="w-5 h-5 mr-2 text-purple-400"></i>
+                    Karya Kata (Draft)
+                </h2>
+                <div id="loadingIndicator" class="text-center p-4 hidden">
+                    <div class="animate-pulse text-yellow-400">
+                        <i data-lucide="heart" class="w-8 h-8 fill-current"></i>
+                    </div>
+                    <p class="text-gray-400 mt-2 text-sm italic">Gemini sedang menuliskan emosi Anda...</p>
+                </div>
+
+                <div id="speechOutput"
+                    class="custom-scrollbar bg-purple-900/40 p-4 border border-purple-700 rounded-xl min-h-[160px] max-h-[350px] overflow-y-auto whitespace-pre-wrap text-gray-300 leading-relaxed text-base shadow-inner">
+                    Pesan hasil AI akan muncul di sini. Coba isi detail di atas!
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-4">
+                    <!-- New Share Button -->
+                    <button id="shareButton" onclick="showShareableCard()" disabled
+                        class="px-4 py-2 text-sm font-medium rounded-lg text-white share-btn disabled:opacity-50 transition duration-200 shadow-md">
+                        <i data-lucide="share-2" class="w-4 h-4 inline-block mr-1"></i> Buat Kartu & Bagikan
+                    </button>
+                    <!-- Copy Draft Button -->
+                    <button id="copyBtn" onclick="copySpeech()" disabled
+                        class="px-4 py-2 text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 transition duration-200 shadow-md">
+                        <i data-lucide="clipboard-copy" class="w-4 h-4 inline-block mr-1"></i> Salin Draft
+                    </button>
+                </div>
+            </div>
+
+            <!-- Error Display -->
+            <div id="errorDisplay" class="mt-4 p-3 bg-red-800 border border-red-400 text-red-200 rounded-lg hidden text-sm">
+                Terjadi kesalahan saat memproses permintaan Anda.
+            </div>
+        </div>
+    </div>
+
+
+    <!-- SHAREABLE CARD MODAL -->
+    <div id="shareModal" class="modal-backdrop" onclick="this.style.display='none'">
+        <div id="shareableCard" class="p-8 rounded-2xl w-full max-w-sm mx-4 cursor-default animate-in zoom-in duration-300" onclick="event.stopPropagation()">
+            <div class="card-content text-center">
+                <p class="text-xs text-yellow-300 mb-4 tracking-widest">PESAN CINTA EKSKLUSIF</p>
+                <div class="text-white text-2xl font-semibold mb-4 border-b border-yellow-400 pb-2">
+                    Untuk <span id="cardNickname" class="gold-text font-extrabold">Cinta Abadi</span>
+                </div>
+                <div id="cardText" class="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap min-h-[100px] mb-6 text-left italic">
+                    [Teks ucapan yang indah akan dimasukkan di sini.]
+                </div>
+                <p class="text-yellow-400 font-semibold mt-4 border-t border-purple-600 pt-2">Dari <span id="cardSignature">Hatiku</span></p>
+
+                <div class="mt-6">
+                    <button id="copyCardBtn" onclick="copyCardText()"
+                        class="w-full py-2 text-sm font-medium rounded-lg text-black bg-yellow-400 hover:bg-yellow-500 transition duration-200 shadow-lg">
+                        <i data-lucide="copy" class="w-4 h-4 inline-block mr-1"></i> Salin Teks Kartu
+                    </button>
+                    <p class="text-xs text-gray-400 mt-2">Salin atau *screenshot* kartu ini untuk dibagikan!</p>
+                </div>
+            </div>
+        </div>
+        <button onclick="document.getElementById('shareModal').style.display='none'" class="absolute top-4 right-4 text-white hover:text-red-500 transition">
+            <i data-lucide="x" class="w-8 h-8"></i>
+        </button>
+    </div>
+    <!-- END SHAREABLE CARD MODAL -->
+
+    <script type="text/javascript">
+        // Inisialisasi Lucide Icons
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
+
+        // --- KONFIGURASI API & KONSTAN ---
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=AIzaSyBUpbtgAKzCwtdR-EpXLaiVHQ3oDr3BjDw`;
+        const MAX_RETRIES = 3;
+
+        // System Instruction yang lebih kuat untuk kualitas keluaran premium
+        const systemPrompt = "Anda adalah maestro penulis surat cinta. Tugas Anda adalah menghasilkan pesan romantis, tulus, dan sangat mendalam dalam Bahasa Indonesia. Pesan harus memiliki narasi yang indah, menggunakan metafora yang kuat, dan secara emosional resonan, sesuai dengan gaya yang diminta. Hasil keluaran harus berupa teks inti 3-5 paragraf tanpa sapaan, judul, atau penutup formal. Jaga agar kalimat tetap mengalir dan elegan.";
+
+        // --- ELEMEN DOM ---
+        const nicknameInput = document.getElementById('nicknameInput');
+        const styleSelect = document.getElementById('styleSelect');
+        const contextInput = document.getElementById('contextInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const speechOutput = document.getElementById('speechOutput');
+        const errorDisplay = document.getElementById('errorDisplay');
+        const copyBtn = document.getElementById('copyBtn');
+        const shareButton = document.getElementById('shareButton');
+        const shareModal = document.getElementById('shareModal');
+        const cardNickname = document.getElementById('cardNickname');
+        const cardText = document.getElementById('cardText');
+        const cardSignature = document.getElementById('cardSignature');
+        const copyCardBtn = document.getElementById('copyCardBtn');
+
+        // --- FUNGSI UTILITY API ---
+
+        /**
+         * Penundaan (delay) untuk exponential backoff.
+         */
+        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        /**
+         * Memanggil Gemini API dengan mekanisme exponential backoff.
+         */
+        async function fetchWithExponentialBackoff(payload, url) {
+            for (let i = 0; i < MAX_RETRIES; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        return await response.json();
+                    } else if (response.status === 429 || response.status >= 500) {
+                        // Retry on failure
+                        const backoffTime = Math.pow(2, i) * 2000 + Math.random() * 1000;
+                        if (i < MAX_RETRIES - 1) {
+                            await delay(backoffTime);
+                        } else {
+                            throw new Error(`API call failed after ${MAX_RETRIES} attempts.`);
+                        }
+                    } else {
+                        // Non-retryable error
+                        const errorBody = await response.json();
+                        throw new Error(`API error: ${response.status} - ${errorBody.error.message || response.statusText}`);
+                    }
+                } catch (error) {
+                    if (i === MAX_RETRIES - 1) throw error;
+                    await delay(Math.pow(2, i) * 2000 + Math.random() * 1000);
+                }
+            }
+        }
+
+
+        // --- FUNGSI UTAMA GENERATOR ---
+
+        async function generateSpeech() {
+            const context = contextInput.value.trim();
+            const nickname = nicknameInput.value.trim() || 'Sayangku'; // Default nickname
+            const style = styleSelect.value;
+
+            if (!context) {
+                speechOutput.textContent = "Mohon masukkan Konteks Utama Pesan. Ini wajib diisi.";
+                copyBtn.disabled = true;
+                shareButton.disabled = true;
+                return;
+            }
+
+            // Reset UI
+            speechOutput.textContent = "";
+            errorDisplay.classList.add('hidden');
+            generateBtn.disabled = true;
+            copyBtn.disabled = true;
+            shareButton.disabled = true;
+            loadingIndicator.classList.remove('hidden');
+            lucide.createIcons();
+
+            // Konstruksi Query untuk AI
+            let userQuery = `Buatkan pesan cinta yang sangat indah dan menyentuh dengan gaya bahasa: "${style}". Konteks utama pesan adalah: "${context}". Pesan harus terdiri dari 3 sampai 5 paragraf.`;
+
+            if (nickname) {
+                userQuery += ` Pastikan untuk menyapa atau menyebut kekasihku menggunakan nama panggilan: "${nickname}".`;
+            }
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                tools: [{ "google_search": {} }],
+            };
+
+            try {
+                const result = await fetchWithExponentialBackoff(payload, API_URL);
+
+                const candidate = result.candidates?.[0];
+                let generatedText = "Gagal menghasilkan pesan. Silakan coba lagi.";
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    generatedText = candidate.content.parts[0].text;
+                }
+
+                // Tampilkan Hasil
+                speechOutput.textContent = generatedText;
+                copyBtn.disabled = false;
+                shareButton.disabled = false;
+                errorDisplay.classList.add('hidden');
+
+            } catch (error) {
+                console.error("Kesalahan dalam memanggil API:", error);
+                speechOutput.textContent = "Maaf, terjadi masalah koneksi atau server saat merangkai ucapan. Coba periksa koneksi atau tunggu sebentar.";
+                errorDisplay.classList.remove('hidden');
+                copyBtn.disabled = true;
+                shareButton.disabled = true;
+            } finally {
+                loadingIndicator.classList.add('hidden');
+                generateBtn.disabled = false;
+                lucide.createIcons();
+            }
+        }
+
+        // --- FUNGSI SHARING DAN COPY ---
+
+        /**
+         * Menampilkan kartu ucapan siap bagi.
+         */
+        function showShareableCard() {
+            const generatedText = speechOutput.textContent.trim();
+            const nickname = nicknameInput.value.trim() || 'Sayangku';
+
+            if (generatedText.length < 50 || generatedText.startsWith("Maaf, terjadi masalah")) {
+                alertUser("Tidak ada pesan yang valid untuk dibuat kartu.", "bg-red-500");
+                return;
+            }
+
+            cardNickname.textContent = nickname;
+            cardText.textContent = generatedText;
+            shareModal.style.display = 'flex';
+            lucide.createIcons();
+        }
+
+        /**
+         * Menyali teks dari draft output.
+         */
+        function copySpeech() {
+            performCopy(speechOutput.textContent, "Salin Draft", "bg-yellow-500", "bg-green-600");
+        }
+
+        /**
+         * Menyalin teks dari kartu ucapan (modal).
+         */
+        function copyCardText() {
+            // Kita menyalin teks kartu yang disempurnakan (dengan To: dan From:)
+            const nickname = cardNickname.textContent;
+            const text = cardText.textContent;
+            const signature = cardSignature.textContent;
+
+            const fullCardText = `Untuk ${nickname},\n\n${text}\n\n${signature}`;
+
+            performCopy(fullCardText, "Salin Kartu", "bg-yellow-500", "bg-yellow-500");
+        }
+
+        /**
+         * Wrapper untuk fungsi penyalinan ke clipboard.
+         */
+        function performCopy(textToCopy, copyType, invalidColor, successColor) {
+            if (textToCopy.length < 50 || textToCopy.includes("Pesan hasil AI akan muncul di sini") || textToCopy.startsWith("Maaf, terjadi masalah")) {
+                alertUser(`Tidak ada pesan yang cukup panjang untuk disalin.`, invalidColor);
+                return;
+            }
+
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    alertUser(`${copyType} berhasil disalin! Kirimkan sekarang!`, successColor);
+                }).catch(err => {
+                    console.error('Gagal menyalin Clipboard API:', err);
+                    fallbackCopyTextToClipboard(textToCopy, successColor);
+                });
+            } else {
+                fallbackCopyTextToClipboard(textToCopy, successColor);
+            }
+        }
+
+        /**
+         * Fallback untuk menyalin teks (jika Clipboard API tidak didukung).
+         */
+        function fallbackCopyTextToClipboard(text, successColor) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                alertUser("Pesan berhasil disalin ke clipboard!", successColor);
+            } catch (err) {
+                console.error('Gagal menyalin execCommand:', err);
+                alertUser("Gagal menyalin. Silakan salin secara manual.", "bg-red-500");
+            }
+            document.body.removeChild(textarea);
+        }
+
+        /**
+         * Menampilkan notifikasi singkat.
+         */
+        function alertUser(message, colorClass) {
+            const existingAlert = document.getElementById('customAlert');
+            if (existingAlert) existingAlert.remove();
+
+            const alertDiv = document.createElement('div');
+            alertDiv.id = 'customAlert';
+            alertDiv.className = `fixed bottom-4 left-1/2 transform -translate-x-1/2 p-3 ${colorClass} text-white font-semibold rounded-lg shadow-2xl transition-opacity duration-300 opacity-0 z-[60]`;
+            alertDiv.textContent = message;
+
+            document.body.appendChild(alertDiv);
+
+            // Show and then hide
+            setTimeout(() => {
+                alertDiv.classList.remove('opacity-0');
+            }, 10);
+            setTimeout(() => {
+                alertDiv.classList.add('opacity-0');
+                setTimeout(() => alertDiv.remove(), 300);
+            }, 3000);
+        }
+
+    </script>
+</body>
+</html>
+

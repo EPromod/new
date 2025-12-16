@@ -43,12 +43,26 @@
             border-radius: 4px; font-size: 0.75rem; font-weight: bold; 
             display: none; vertical-align: middle; margin-left: 10px;
         }
+        /* Modal Style */
+        #apiModal {
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+        }
     </style>
 </head>
-<body class="p-4 sm:p-8 min-h-screen">
+<body class="p-4 sm:p-8 min-h-screen relative">
 
-    <div class="max-w-4xl mx-auto">
-        <header class="text-center mb-8 relative">
+    <div class="max-w-4xl mx-auto relative">
+        
+        <!-- Tombol Pengaturan API (Pojok Kanan Atas) -->
+        <button onclick="openApiModal()" class="absolute top-0 right-0 mt-2 mr-2 text-gray-400 hover:text-white transition p-2 bg-gray-800 rounded-full bg-opacity-50 hover:bg-opacity-100" title="Atur API Key">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        </button>
+
+        <header class="text-center mb-8 relative pt-8">
             <!-- Tombol Install PWA -->
             <button id="installBtn" class="mb-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-full shadow-lg transition transform hover:scale-105">
                 📲 Install Aplikasi
@@ -144,11 +158,63 @@
         </div>
     </div>
 
+    <!-- MODAL POPUP INPUT API -->
+    <div id="apiModal" class="fixed inset-0 z-50 flex items-center justify-center hidden px-4">
+        <div class="card w-full max-w-md p-6 rounded-xl shadow-2xl transform transition-all">
+            <h3 class="text-xl font-bold text-white mb-4">Pengaturan API Gemini</h3>
+            <p class="text-sm text-gray-300 mb-4">
+                Masukkan Google Gemini API Key Anda untuk mengaktifkan analisis AI. Key disimpan lokal di browser Anda.
+            </p>
+            
+            <div class="mb-6">
+                <label for="apiKeyInput" class="block text-sm font-medium text-gray-400 mb-2">API Key</label>
+                <input type="password" id="apiKeyInput" class="w-full bg-gray-700 text-white p-3 rounded-lg border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition" placeholder="Tempel AIza... di sini">
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button onclick="closeApiModal()" class="px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition">Batal</button>
+                <button onclick="saveApiKey()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow transition">Simpan</button>
+            </div>
+            
+            <div class="mt-4 text-center">
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-xs text-indigo-400 hover:text-indigo-300 hover:underline">Dapatkan API Key Gratis di sini</a>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // --- 1. CONFIGURATION & PWA INSTALLER ---
-        const API_KEY = "AIzaSyDBhC9j1ZAamQHg38eMpwycLnwJFLF_cnQ"; 
-        
-        // Registrasi Service Worker
+        // --- 1. CONFIGURATION & API KEY MANAGEMENT ---
+        const API_STORAGE_KEY = "forensic_gemini_api_key";
+        let apiKey = localStorage.getItem(API_STORAGE_KEY) || "";
+
+        // Fungsi Modal API
+        const apiModal = document.getElementById('apiModal');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+
+        function openApiModal() {
+            apiKeyInput.value = apiKey;
+            apiModal.classList.remove('hidden');
+        }
+
+        function closeApiModal() {
+            apiModal.classList.add('hidden');
+        }
+
+        function saveApiKey() {
+            const newKey = apiKeyInput.value.trim();
+            if (!newKey) {
+                alert("Silakan masukkan API Key.");
+                return;
+            }
+            apiKey = newKey;
+            localStorage.setItem(API_STORAGE_KEY, apiKey);
+            closeApiModal();
+            alert("API Key berhasil disimpan!");
+            
+            // Jika ada file yang sedang dianalisis tapi AI gagal sebelumnya, bisa reload page atau re-trigger (opsional)
+        }
+
+        // --- PWA INSTALLER ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
@@ -157,7 +223,6 @@
             });
         }
 
-        // Logika Tombol Install
         let deferredPrompt;
         const installBtn = document.getElementById('installBtn');
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -250,22 +315,40 @@
                 return;
             }
 
+            // CEK API KEY
+            if (!apiKey) {
+                aiReportStatus.innerHTML = "<span class='text-red-400'>API Key Belum Diatur.</span>";
+                aiReportContent.innerHTML = `<button onclick="openApiModal()" class="text-indigo-400 underline font-bold cursor-pointer">Klik di sini untuk memasukkan API Key</button> agar analisis AI dapat berjalan.`;
+                openApiModal();
+                return;
+            }
+
             aiReportStatus.innerHTML = "Menghubungi Server AI...";
             aiReportStatus.classList.remove('hidden');
             
             const prompt = `Analisis forensik gambar. Data:\n${technicalData}\n\nBerikan kesimpulan singkat (3 paragraf): Indikasi manipulasi, Integritas Metadata, dan Kesimpulan Akhir. Bahasa Indonesia.`;
             
             try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
+
+                if (res.status === 400 || res.status === 403) {
+                    throw new Error("API Key Invalid");
+                }
+
                 const data = await res.json();
                 const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Gagal mendapat respons AI.";
                 aiReportContent.textContent = text;
             } catch (e) {
-                aiReportContent.textContent = "Gagal menghubungi AI. Cek koneksi internet.";
+                console.error(e);
+                if (e.message === "API Key Invalid") {
+                    aiReportContent.innerHTML = `<span class="text-red-400">Error: API Key tidak valid.</span> <button onclick="openApiModal()" class="underline text-indigo-400">Perbarui Key</button>`;
+                } else {
+                    aiReportContent.textContent = "Gagal menghubungi AI. Cek koneksi internet.";
+                }
             } finally {
                 aiReportStatus.classList.add('hidden');
             }

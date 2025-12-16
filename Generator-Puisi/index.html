@@ -28,6 +28,7 @@
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
             border: 2px solid #5d3596; /* Lighter Purple Border */
             transition: all 0.4s ease-in-out;
+            position: relative; /* For absolute positioning of settings btn */
         }
 
         /* Gold Gradient Text */
@@ -123,6 +124,13 @@
             align-items: center;
             backdrop-filter: blur(5px);
         }
+        
+        /* Specific Style for API Modal */
+        .api-modal-content {
+            background-color: #2c0e52;
+            border: 2px solid #5d3596;
+            color: white;
+        }
 
     </style>
 </head>
@@ -130,6 +138,11 @@
 
     <div id="app" class="w-full max-w-lg mx-auto z-10">
         <div class="premium-card p-6 md:p-10 rounded-3xl">
+
+            <!-- API Settings Button -->
+            <button onclick="openApiModal()" class="absolute top-5 right-5 text-gray-400 hover:text-yellow-400 transition transform hover:rotate-90 duration-300 focus:outline-none" title="Atur API Key Gemini">
+                <i data-lucide="settings" class="w-6 h-6"></i>
+            </button>
 
             <!-- Header Section -->
             <header class="text-center mb-8">
@@ -256,14 +269,52 @@
     </div>
     <!-- END SHAREABLE CARD MODAL -->
 
+    <!-- API SETTINGS MODAL (NEW) -->
+    <div id="apiModal" class="modal-backdrop">
+        <div class="api-modal-content p-8 rounded-2xl w-full max-w-sm mx-4 animate-in fade-in zoom-in duration-300 shadow-2xl">
+            <h3 class="text-xl font-bold text-yellow-400 mb-4 flex items-center">
+                <i data-lucide="key" class="w-5 h-5 mr-2"></i> Pengaturan API
+            </h3>
+            <p class="text-sm text-gray-300 mb-4">
+                Masukkan Google Gemini API Key Anda. Key ini akan disimpan di browser Anda (LocalStorage) untuk penggunaan selanjutnya.
+            </p>
+            
+            <div class="mb-6">
+                <label for="apiKeyInput" class="block text-xs font-semibold text-purple-300 uppercase mb-2">API Key</label>
+                <input type="password" id="apiKeyInput" 
+                    class="w-full p-3 rounded-lg bg-purple-900/50 border border-purple-600 text-white placeholder-purple-400 focus:outline-none focus:border-yellow-400 transition"
+                    placeholder="Tempel AIza... di sini">
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button onclick="closeApiModal()" class="px-4 py-2 text-sm text-gray-300 hover:text-white transition">Batal</button>
+                <button onclick="saveApiKey()" class="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-lg shadow-lg transition transform hover:scale-105">
+                    Simpan
+                </button>
+            </div>
+            
+            <div class="mt-4 text-center">
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-xs text-purple-300 hover:text-yellow-400 underline">
+                    Belum punya Key? Dapatkan di sini
+                </a>
+            </div>
+        </div>
+    </div>
+    <!-- END API MODAL -->
+
     <script type="text/javascript">
         // Inisialisasi Lucide Icons
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
+            // Cek apakah API Key sudah ada saat load
+            if(!localStorage.getItem('gemini_user_api_key')) {
+                // Opsional: Buka modal otomatis jika belum ada key (saya disable agar tidak mengganggu UI awal)
+                // openApiModal();
+            }
         });
 
         // --- KONFIGURASI API & KONSTAN ---
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=AIzaSyBUpbtgAKzCwtdR-EpXLaiVHQ3oDr3BjDw`;
+        const BASE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent`;
         const MAX_RETRIES = 3;
 
         // System Instruction yang lebih kuat untuk kualitas keluaran premium
@@ -284,6 +335,35 @@
         const cardText = document.getElementById('cardText');
         const cardSignature = document.getElementById('cardSignature');
         const copyCardBtn = document.getElementById('copyCardBtn');
+        
+        // Modal API Elements
+        const apiModal = document.getElementById('apiModal');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+
+        // --- LOGIKA MODAL API KEY ---
+        function openApiModal() {
+            // Isi input dengan key yang tersimpan (jika ada)
+            const savedKey = localStorage.getItem('gemini_user_api_key');
+            if(savedKey) apiKeyInput.value = savedKey;
+            
+            apiModal.style.display = 'flex';
+            lucide.createIcons();
+        }
+
+        function closeApiModal() {
+            apiModal.style.display = 'none';
+        }
+
+        function saveApiKey() {
+            const key = apiKeyInput.value.trim();
+            if (!key) {
+                alertUser("Silakan masukkan API Key yang valid.", "bg-red-500");
+                return;
+            }
+            localStorage.setItem('gemini_user_api_key', key);
+            closeApiModal();
+            alertUser("API Key berhasil disimpan!", "bg-green-600");
+        }
 
         // --- FUNGSI UTILITY API ---
 
@@ -306,6 +386,9 @@
 
                     if (response.ok) {
                         return await response.json();
+                    } else if (response.status === 400 || response.status === 403) {
+                        // Error API Key Invalid
+                        throw new Error("API Key Invalid");
                     } else if (response.status === 429 || response.status >= 500) {
                         // Retry on failure
                         const backoffTime = Math.pow(2, i) * 2000 + Math.random() * 1000;
@@ -320,6 +403,7 @@
                         throw new Error(`API error: ${response.status} - ${errorBody.error.message || response.statusText}`);
                     }
                 } catch (error) {
+                    if (error.message === "API Key Invalid") throw error; // Jangan retry jika key salah
                     if (i === MAX_RETRIES - 1) throw error;
                     await delay(Math.pow(2, i) * 2000 + Math.random() * 1000);
                 }
@@ -333,6 +417,15 @@
             const context = contextInput.value.trim();
             const nickname = nicknameInput.value.trim() || 'Sayangku'; // Default nickname
             const style = styleSelect.value;
+            
+            // Ambil API Key dari LocalStorage
+            const apiKey = localStorage.getItem('gemini_user_api_key');
+
+            if (!apiKey) {
+                openApiModal();
+                alertUser("Harap masukkan API Key Gemini terlebih dahulu.", "bg-yellow-500");
+                return;
+            }
 
             if (!context) {
                 speechOutput.textContent = "Mohon masukkan Konteks Utama Pesan. Ini wajib diisi.";
@@ -360,11 +453,13 @@
             const payload = {
                 contents: [{ parts: [{ text: userQuery }] }],
                 systemInstruction: { parts: [{ text: systemPrompt }] },
-                tools: [{ "google_search": {} }],
+                // tools: [{ "google_search": {} }], // Removed for safety with standard API keys
             };
 
+            const fullUrl = `${BASE_API_URL}?key=${apiKey}`;
+
             try {
-                const result = await fetchWithExponentialBackoff(payload, API_URL);
+                const result = await fetchWithExponentialBackoff(payload, fullUrl);
 
                 const candidate = result.candidates?.[0];
                 let generatedText = "Gagal menghasilkan pesan. Silakan coba lagi.";
@@ -381,7 +476,14 @@
 
             } catch (error) {
                 console.error("Kesalahan dalam memanggil API:", error);
-                speechOutput.textContent = "Maaf, terjadi masalah koneksi atau server saat merangkai ucapan. Coba periksa koneksi atau tunggu sebentar.";
+                
+                if (error.message === "API Key Invalid" || error.message.includes("403")) {
+                    speechOutput.textContent = "API Key tidak valid atau kadaluarsa. Silakan periksa pengaturan.";
+                    openApiModal();
+                } else {
+                    speechOutput.textContent = "Maaf, terjadi masalah koneksi atau server saat merangkai ucapan. Coba periksa koneksi atau tunggu sebentar.";
+                }
+                
                 errorDisplay.classList.remove('hidden');
                 copyBtn.disabled = true;
                 shareButton.disabled = true;
@@ -435,7 +537,7 @@
 
         /**
          * Wrapper untuk fungsi penyalinan ke clipboard.
-         */
+*/
         function performCopy(textToCopy, copyType, invalidColor, successColor) {
             if (textToCopy.length < 50 || textToCopy.includes("Pesan hasil AI akan muncul di sini") || textToCopy.startsWith("Maaf, terjadi masalah")) {
                 alertUser(`Tidak ada pesan yang cukup panjang untuk disalin.`, invalidColor);
@@ -493,11 +595,10 @@
             }, 10);
             setTimeout(() => {
                 alertDiv.classList.add('opacity-0');
-                setTimeout(() => alertDiv.remove(), 300);
+                setTimeout(() => alertDiv.remove(), 3000);
             }, 3000);
         }
 
     </script>
 </body>
 </html>
-

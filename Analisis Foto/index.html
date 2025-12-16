@@ -48,6 +48,11 @@
             color: #3b82f6;
             font-weight: 600;
         }
+        /* Style untuk Modal */
+        #api-modal {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
         /* Responsif untuk tampilan mobile */
         @media (min-width: 640px) {
             .container-card {
@@ -56,15 +61,29 @@
         }
     </style>
 </head>
-<body class="p-4 sm:p-8">
+<body class="p-4 sm:p-8 relative">
 
-    <div class="container-card">
+    <div class="container-card relative">
+        <!-- Tombol Pengaturan API di Pojok Kanan Atas Card -->
+        <button onclick="openApiModal()" class="absolute top-4 right-4 text-gray-400 hover:text-blue-600 transition" title="Atur API Key">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        </button>
+
         <h1 class="text-3xl font-bold text-gray-900 mb-2">Detektor Detail Foto Lanjutan Gemini</h1>
         <p class="text-gray-600 mb-6">Unggah gambar untuk mendapatkan analisis visual yang sangat detail (warna, pencahayaan, objek, gaya, perkiraan perangkat, dan lokasi).</p>
         
-        <div id="api-alert" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded-lg" role="alert">
-            <p class="font-bold">Perhatian Penting:</p>
-            <p class="text-sm">Anda harus memasukkan Kunci API Gemini Anda sendiri di dalam kode JavaScript agar aplikasi ini berfungsi. (Lihat baris 108).</p>
+        <!-- Status API Key -->
+        <div id="api-status-box" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg" role="alert">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="font-bold">API Key Belum Diatur</p>
+                    <p class="text-sm">Anda perlu memasukkan API Key Gemini agar aplikasi berfungsi.</p>
+                </div>
+                <button onclick="openApiModal()" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">Masukkan Key</button>
+            </div>
         </div>
 
         <!-- Area Unggah Gambar -->
@@ -105,16 +124,87 @@
                 <p id="error-message" class="mt-4 text-sm text-red-600 hidden"></p>
             </div>
         </div>
+    </div>
 
+    <!-- PWA Install & Offline UI Elements (Placeholder agar JS tidak error) -->
+    <button id="install-btn" style="display:none;" class="fixed bottom-4 right-4 bg-blue-600 text-white p-3 rounded-full shadow-lg z-40">Install App</button>
+    <div id="offline-banner" style="display:none;" class="fixed bottom-0 left-0 w-full bg-gray-800 text-white text-center p-2 z-40">Anda sedang offline</div>
+
+    <!-- MODAL POPUP API KEY -->
+    <div id="api-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-md p-6 transform transition-all scale-100">
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Pengaturan API Gemini</h3>
+            <p class="text-sm text-gray-600 mb-4">
+                Masukkan API Key Google Gemini Anda. Kunci ini akan disimpan di browser Anda (LocalStorage) dan tidak dikirim ke server kami.
+            </p>
+            
+            <div class="mb-4">
+                <label for="api-key-input" class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+                <input type="password" id="api-key-input" class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" placeholder="Tempel kunci AIza... di sini">
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <button onclick="closeApiModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Batal</button>
+                <button onclick="saveApiKey()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Simpan</button>
+            </div>
+            
+            <div class="mt-4 text-xs text-gray-500 text-center">
+                Belum punya kunci? <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 hover:underline">Dapatkan di sini</a>.
+            </div>
+        </div>
     </div>
 
     <script>
         
         // =======================================================
-        // LANGKAH PENTING: MASUKKAN KUNCI API GEMINI ANDA DI SINI
-        // Ganti string kosong "" dengan Kunci API Gemini yang telah Anda dapatkan
+        // KONFIGURASI API KEY (Dikelola oleh Popup)
         // =======================================================
-        const apiKey = "AIzaSyDw2oKa2pFZMvv4XkFTKhUfuTIUiRQ1Y68"; // <--- GANTI INI! 
+        let apiKey = localStorage.getItem('gemini_api_key') || "";
+        
+        // --- Logika Modal API ---
+        const apiModal = document.getElementById('api-modal');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const apiStatusBox = document.getElementById('api-status-box');
+
+        function openApiModal() {
+            apiKeyInput.value = apiKey; // Isi input dengan key yang ada (jika ada)
+            apiModal.classList.remove('hidden');
+        }
+
+        function closeApiModal() {
+            apiModal.classList.add('hidden');
+        }
+
+        function saveApiKey() {
+            const newKey = apiKeyInput.value.trim();
+            if (newKey) {
+                apiKey = newKey;
+                localStorage.setItem('gemini_api_key', apiKey);
+                updateApiStatusUI();
+                closeApiModal();
+                alert("API Key berhasil disimpan!");
+            } else {
+                alert("Silakan masukkan API Key.");
+            }
+        }
+
+        function updateApiStatusUI() {
+            if (!apiKey || apiKey === "") {
+                apiStatusBox.classList.remove('hidden');
+            } else {
+                apiStatusBox.classList.add('hidden');
+            }
+        }
+
+        // Cek status API saat pertama kali dimuat
+        document.addEventListener('DOMContentLoaded', () => {
+            updateApiStatusUI();
+            if(!apiKey) {
+                // Opsional: Buka modal otomatis jika belum ada key
+                // setTimeout(openApiModal, 1000); 
+            }
+        });
+
         // =======================================================
 
         let fileData = null; // Menyimpan data base64 gambar yang diunggah
@@ -145,11 +235,13 @@
          * @returns {Promise<string>} Teks hasil analisis.
          */
         async function analyzeImage(base64Image, mimeType) {
+            // Cek ulang API Key sebelum request
             if (!apiKey || apiKey === "") {
-                throw new Error("Kunci API Gemini tidak ditemukan. Silakan masukkan kunci API Anda.");
+                openApiModal(); // Buka popup jika key kosong saat mau analisis
+                throw new Error("API Key belum diatur. Silakan masukkan API Key pada popup yang muncul.");
             }
             
-            const modelName = 'gemini-2.5-flash-preview-09-2025';
+            const modelName = 'gemini-2.5-flash-preview-09-2025'; // Menggunakan model terbaru yang stabil/cepat
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
             // Perintah yang SANGAT SPESIFIK untuk mendapatkan semua detail yang diminta pengguna:
@@ -205,7 +297,11 @@
                     });
 
                     if (response.status === 401 || response.status === 403) {
-                         throw new Error("Kunci API tidak valid atau izin ditolak. Pastikan Kunci API Anda benar.");
+                         // Reset key jika invalid agar user diminta input ulang
+                         localStorage.removeItem('gemini_api_key');
+                         apiKey = "";
+                         updateApiStatusUI();
+                         throw new Error("Kunci API tidak valid atau izin ditolak. Silakan perbarui Kunci API Anda.");
                     }
 
                     if (!response.ok) {
@@ -299,12 +395,12 @@
                 errorMessage.classList.remove('hidden');
                 return;
             }
+            
+            // Validasi API Key
             if (!apiKey || apiKey === "") {
-                errorMessage.textContent = "ERROR: Kunci API Gemini belum dimasukkan dalam kode JavaScript.";
-                errorMessage.classList.remove('hidden');
+                openApiModal();
                 return;
             }
-
 
             // Atur status UI
             analyzeButton.disabled = true;
@@ -332,6 +428,7 @@
         // --- 1. Service Worker & PWA ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
+                // Pastikan file sw.js ada di root direktori Anda
                 navigator.serviceWorker.register('./sw.js')
                     .then(() => console.log('Service Worker Terdaftar'))
                     .catch(err => console.log('Gagal SW:', err));
@@ -343,24 +440,26 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            installBtn.style.display = 'block';
+            if(installBtn) installBtn.style.display = 'block';
         });
-        installBtn.addEventListener('click', () => {
-            installBtn.style.display = 'none';
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then(() => deferredPrompt = null);
-        });
+        
+        if(installBtn) {
+            installBtn.addEventListener('click', () => {
+                installBtn.style.display = 'none';
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(() => deferredPrompt = null);
+            });
+        }
 
         const offlineBanner = document.getElementById('offline-banner');
-        const analyzeBtn = document.getElementById('analyze-button');
-
+        
         function updateOnlineStatus() {
             if (navigator.onLine) {
-                offlineBanner.style.display = 'none';
-                if(fileData) analyzeBtn.disabled = false;
+                if(offlineBanner) offlineBanner.style.display = 'none';
+                if(fileData) analyzeButton.disabled = false;
             } else {
-                offlineBanner.style.display = 'block';
-                analyzeBtn.disabled = true;
+                if(offlineBanner) offlineBanner.style.display = 'block';
+                analyzeButton.disabled = true;
             }
         }
         window.addEventListener('online', updateOnlineStatus);
@@ -371,4 +470,3 @@
 
 </body>
 </html>
-
